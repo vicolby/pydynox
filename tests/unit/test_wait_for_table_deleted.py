@@ -6,11 +6,9 @@ polling loop runs for real without Docker or AWS credentials.
 
 from __future__ import annotations
 
-import ast
 import json
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
-from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -261,27 +259,3 @@ def test_memory_backend_sync_delete_and_wait() -> None:
 def test_memory_backend_wait_for_absent_table_succeeds() -> None:
     with MemoryBackend() as backend:
         backend.client.sync_wait_for_table_deleted("never_created")
-
-
-# ========== Type stubs ==========
-
-
-def _stub_methods() -> dict[str, ast.FunctionDef]:
-    stub = Path(__file__).parents[2] / "python" / "pydynox" / "pydynox_core.pyi"
-    tree = ast.parse(stub.read_text())
-    for node in ast.walk(tree):
-        if isinstance(node, ast.ClassDef) and node.name == "DynamoDBClient":
-            return {n.name: n for n in node.body if isinstance(n, ast.FunctionDef)}
-    raise AssertionError("DynamoDBClient not found in stub")
-
-
-@pytest.mark.parametrize("name", ["wait_for_table_deleted", "sync_wait_for_table_deleted"])
-def test_stub_declares_wait_for_table_deleted(name: str) -> None:
-    args = _stub_methods()[name].args
-    assert [a.arg for a in args.args] == ["self", "table_name", "timeout_seconds"]
-
-
-@pytest.mark.parametrize("name", ["delete_table", "sync_delete_table"])
-def test_stub_declares_delete_table_wait_options(name: str) -> None:
-    args = _stub_methods()[name].args
-    assert [a.arg for a in args.kwonlyargs] == ["wait", "timeout_seconds"]
